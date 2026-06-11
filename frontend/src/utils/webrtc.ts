@@ -290,28 +290,14 @@ export class P2PConnectionManager {
       this.onConnectionState('connected');
       this.onPeerStatus(true);
       
-      if (this.role === 'receiver') {
-        // Query if we already have some chunks downloaded locally (to resume)
-        getStoredChunkIndices(this.roomId)
-          .then(async (indices) => {
-            const lastIdx = indices.length > 0 ? indices[indices.length - 1] : -1;
-            const meta = await getFileMetadata(this.roomId);
-            
-            // If the metadata exists and matches what we are about to download
-            if (meta) {
-              this.fileMetadata = meta;
-              this.onMetadata(meta);
-            }
-
-            // Signal ready to sender, requesting starting index
-            channel.send(JSON.stringify({
-              type: 'ready',
-              lastIndex: lastIdx
-            }));
-          })
-          .catch(() => {
-            channel.send(JSON.stringify({ type: 'ready', lastIndex: -1 }));
-          });
+      if (this.role === 'sender') {
+        if (this.fileMetadata) {
+          console.log('[WebRTC] Sender sending metadata upon channel open');
+          channel.send(JSON.stringify({
+            type: 'metadata',
+            metadata: this.fileMetadata
+          }));
+        }
       }
     };
 
@@ -346,13 +332,23 @@ export class P2PConnectionManager {
     if (msg.type === 'ready') {
       console.log(`[WebRTC] Receiver is ready. Resuming from chunk index: ${msg.lastIndex + 1}`);
       
-      // Start streaming chunks
       if (this.role === 'sender' && this.fileMetadata) {
-        // Send metadata to receiver
-        this.dataChannel?.send(JSON.stringify({
-          type: 'metadata',
-          metadata: this.fileMetadata
-        }));
+        if (this.isTransferring) {
+          if (msg.lastIndex === -1) {
+            console.log('[WebRTC] Receiver requested a complete reset mid-transfer.');
+            this.isTransferring = false;
+            this.stopStatsTracking();
+            setTimeout(() => {
+              this.currentChunkIndex = 0;
+              this.isTransferring = true;
+              this.startStatsTracking();
+              this.streamChunks();
+            }, 50);
+            return;
+          }
+          console.warn('[WebRTC] Received ready message but transfer is already active. Ignoring.');
+          return;
+        }
 
         this.currentChunkIndex = msg.lastIndex + 1;
         this.isTransferring = true;
@@ -361,6 +357,33 @@ export class P2PConnectionManager {
       }
     } else if (msg.type === 'metadata') {
       console.log('[WebRTC] Received File Metadata:', msg.metadata);
+      
+      // Get existing metadata from IndexedDB
+      const existingMeta = await getFileMetadata(this.roomId);
+      let lastIdx = -1;
+      
+      if (existingMeta) {
+        if (
+          existingMeta.name === msg.metadata.name &&
+          existingMeta.size === msg.metadata.size &&
+          existingMeta.type === msg.metadata.type
+        ) {
+          // Same file! We check indices to resume.
+          const indices = await getStoredChunkIndices(this.roomId);
+          lastIdx = indices.length > 0 ? indices[indices.length - 1] : -1;
+          console.log(`[WebRTC] Same file detected. Resuming from chunk index: ${lastIdx + 1}`);
+        } else {
+          // Different file! Clear old room data.
+          console.log('[WebRTC] Different file detected. Clearing IndexedDB room data.');
+          await clearRoomData(this.roomId);
+          this.chunkHashes = [];
+        }
+      } else {
+        // Clear just in case there are orphaned chunks under this roomId
+        await clearRoomData(this.roomId);
+        this.chunkHashes = [];
+      }
+      
       this.fileMetadata = msg.metadata;
       this.onMetadata(msg.metadata);
       
@@ -371,6 +394,12 @@ export class P2PConnectionManager {
       });
       
       this.startStatsTracking();
+
+      // Signal ready to sender, requesting starting index
+      this.dataChannel?.send(JSON.stringify({
+        type: 'ready',
+        lastIndex: lastIdx
+      }));
     } else if (msg.type === 'completed-verification') {
       // Sender notified receiver of the expected final SHA-256 hash
       if (this.role === 'receiver' && this.fileMetadata) {
