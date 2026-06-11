@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#09090B] text-neutral-100 min-h-screen font-sans antialiased selection:bg-neutral-800 selection:text-white;
+    background-image: none; /* Remove any gradients for a clean flat design */
+  }
+}
+
+/* Monochromatic Solid Cards */
+.solid-panel {
+  background: #18181B; /* zinc 900 */
+  border: 1px solid #27272A; /* zinc 800 */
+  border-radius: 12px;
+}
+
+.solid-panel-hover {
+  @apply transition-all duration-200;
+}
+.solid-panel-hover:hover {
+  background: #202024;
+  border-color: #3F3F46; /* zinc 700 */
+}
+
+.solid-input {
+  background: #09090B;
+  border: 1px solid #27272A;
+  border-radius: 8px;
+  @apply focus:outline-none focus:border-neutral-400 transition-all duration-150 text-neutral-100 px-3 py-2 text-sm;
+}
+
+/* Hide scrollbars but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Button style utilities */
+.btn-primary {
+  @apply bg-white text-black font-medium text-sm px-4 py-2.5 rounded-lg hover:bg-neutral-200 active:scale-[0.99] transition-all duration-150 flex items-center justify-center space-x-2 shadow-sm;
+}
+
+.btn-secondary {
+  @apply bg-[#18181B] border border-[#27272A] text-neutral-300 font-medium text-sm px-4 py-2.5 rounded-lg hover:bg-[#202024] hover:text-white active:scale-[0.99] transition-all duration-150 flex items-center justify-center space-x-2;
+}
