@@ -9,7 +9,7 @@ function App() {
           <div className="px-2 py-0.5 rounded bg-white flex items-center justify-center font-bold text-black text-[10px] font-mono">
             P2P
           </div>
-          <span className="font-bold tracking-wider text-neutral-200 text-xs font-mono">P2P SHARE</span>
+          <span className="font-bold tracking-wider text-neutral-200 text-xs font-mono">SHARE</span>
         </div>
         <div className="text-[10px] text-neutral-500 font-medium font-mono uppercase tracking-wider">
           Direct & Encrypted
