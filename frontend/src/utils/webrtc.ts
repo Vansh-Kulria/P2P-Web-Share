@@ -290,14 +290,11 @@ export class P2PConnectionManager {
       this.onConnectionState('connected');
       this.onPeerStatus(true);
       
-      if (this.role === 'sender') {
-        if (this.fileMetadata) {
-          console.log('[WebRTC] Sender sending metadata upon channel open');
-          channel.send(JSON.stringify({
-            type: 'metadata',
-            metadata: this.fileMetadata
-          }));
-        }
+      if (this.role === 'receiver') {
+        console.log('[WebRTC] Receiver requesting metadata upon channel open');
+        channel.send(JSON.stringify({
+          type: 'request-metadata'
+        }));
       }
     };
 
@@ -329,7 +326,15 @@ export class P2PConnectionManager {
    * Processes incoming text signals over DataChannel.
    */
   private async handleTextMessage(msg: any) {
-    if (msg.type === 'ready') {
+    if (msg.type === 'request-metadata') {
+      if (this.role === 'sender' && this.fileMetadata) {
+        console.log('[WebRTC] Sender sending metadata in response to request-metadata');
+        this.dataChannel?.send(JSON.stringify({
+          type: 'metadata',
+          metadata: this.fileMetadata
+        }));
+      }
+    } else if (msg.type === 'ready') {
       console.log(`[WebRTC] Receiver is ready. Resuming from chunk index: ${msg.lastIndex + 1}`);
       
       if (this.role === 'sender' && this.fileMetadata) {
