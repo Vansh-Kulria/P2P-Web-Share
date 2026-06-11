@@ -13,6 +13,7 @@ interface TransferProgressProps {
   peerConnected: boolean;
   stats: TransferStats | null;
   onCancel: () => void;
+  onSendAnotherFile?: (file: File) => void;
 }
 
 export const TransferProgress: React.FC<TransferProgressProps> = ({
@@ -22,7 +23,8 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
   connectionState,
   peerConnected,
   stats,
-  onCancel
+  onCancel,
+  onSendAnotherFile
 }) => {
   const formatBytes = (bytes: number, decimals = 2) => {
     if (bytes === 0) return '0 Bytes';
@@ -171,8 +173,8 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
         </div>
       </div>
 
-      {/* Warnings & Action Button */}
-      <div className="flex flex-col space-y-4">
+      {/* Warnings & Action Buttons */}
+      <div className="flex flex-col space-y-3">
         {!peerConnected && connectionState === 'disconnected' && (
           <div className="flex items-start space-x-2 p-3 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-400 text-xs">
             <ShieldAlert className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
@@ -180,12 +182,46 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
           </div>
         )}
 
-        <button
-          onClick={onCancel}
-          className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 hover:border-neutral-700 transition-colors text-xs font-semibold rounded-lg"
-        >
-          Cancel Transfer
-        </button>
+        {connectionState === 'completed' ? (
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            {isSender && onSendAnotherFile && (
+              <>
+                <input
+                  type="file"
+                  id="send-another-file-input"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onSendAnotherFile(file);
+                  }}
+                />
+                <button
+                  onClick={() => document.getElementById('send-another-file-input')?.click()}
+                  className="flex-1 py-2 bg-white hover:bg-neutral-100 text-neutral-950 transition-colors text-xs font-semibold rounded-lg text-center"
+                >
+                  Send Another File
+                </button>
+              </>
+            )}
+            <button
+              onClick={onCancel}
+              className={`py-2 text-xs font-semibold rounded-lg transition-colors border ${
+                isSender && onSendAnotherFile
+                  ? 'flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border-neutral-800 hover:border-neutral-700'
+                  : 'w-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border-neutral-800 hover:border-neutral-700'
+              }`}
+            >
+              Close Room
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onCancel}
+            className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 hover:border-neutral-700 transition-colors text-xs font-semibold rounded-lg"
+          >
+            Cancel Transfer
+          </button>
+        )}
       </div>
 
     </div>

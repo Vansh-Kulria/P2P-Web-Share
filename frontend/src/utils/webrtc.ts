@@ -162,6 +162,20 @@ export class P2PConnectionManager {
   }
 
   /**
+   * Manually triggers sending file metadata to the receiver.
+   * Useful when sending a subsequent file in the same room.
+   */
+  public sendMetadata() {
+    if (this.dataChannel && this.dataChannel.readyState === 'open' && this.fileMetadata) {
+      console.log('[WebRTC] Sender sending metadata');
+      this.dataChannel.send(JSON.stringify({
+        type: 'metadata',
+        metadata: this.fileMetadata
+      }));
+    }
+  }
+
+  /**
    * Initiates the RTCPeerConnection (Sender side).
    */
   private initiateConnection() {

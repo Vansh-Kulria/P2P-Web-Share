@@ -7,7 +7,7 @@ import { FileSelector } from './FileSelector';
 import { TransferProgress } from './TransferProgress';
 import { P2PConnectionManager } from '../utils/webrtc';
 import type { TransferStats } from '../utils/webrtc';
-import { generateEncryptionKey, exportKey } from '../utils/crypto';
+import { generateEncryptionKey, exportKey, importKey } from '../utils/crypto';
 import type { FileMetadata } from '../utils/storage';
 
 const SIGNALING_URL = 'http://localhost:4000'; // Default local address
@@ -100,6 +100,8 @@ export const ShareRoom: React.FC = () => {
 
     manager.onMetadata = (metadata) => {
       setFileMetadata(metadata);
+      setConnectionState('connected');
+      setStats(null);
       addLog(`Metadata: ${metadata.name} (${(metadata.size / 1024 / 1024).toFixed(2)} MB)`);
     };
 
@@ -120,6 +122,28 @@ export const ShareRoom: React.FC = () => {
     setSelectedFile(file);
     setError(null);
     addLog(`File: ${file.name}`);
+  };
+
+  const handleSendAnotherFile = async (file: File) => {
+    setSelectedFile(file);
+    setError(null);
+    setStats(null);
+    setConnectionState('connected');
+    
+    let key: CryptoKey | undefined;
+    if (isE2eeEnabled && e2eeKeyStr) {
+      try {
+        key = await importKey(e2eeKeyStr);
+      } catch (err: any) {
+        console.error('[ShareRoom] Error importing key:', err);
+      }
+    }
+
+    if (managerRef.current) {
+      managerRef.current.setSenderFile(file, key);
+      addLog(`Sending another file: ${file.name}`);
+      managerRef.current.sendMetadata();
+    }
   };
 
   const handleCreateRoom = async () => {
@@ -323,6 +347,7 @@ export const ShareRoom: React.FC = () => {
                   peerConnected={peerConnected}
                   stats={stats}
                   onCancel={handleReset}
+                  onSendAnotherFile={handleSendAnotherFile}
                 />
               )
             )}
