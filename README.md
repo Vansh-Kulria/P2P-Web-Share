@@ -33,6 +33,9 @@ To avoid standard WebRTC handshake races where metadata is sent before data chan
 * Real-time transfer statistics (throughput via exponential moving average, ETA, progress).
 
 ---
+```
+<img width="3837" height="1662" alt="image" src="https://github.com/user-attachments/assets/a1827e6c-10d0-4a8b-b614-c00ef696fe91" />
+```
 
 ## Local Development Setup
 
